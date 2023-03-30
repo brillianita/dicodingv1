@@ -1,7 +1,6 @@
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const ClientError = require('./exceptions/ClientError');
-const AuthenticationError = require('./exceptions/AuthenticationError');
 
 // users
 const users = require('./api/users');
@@ -17,12 +16,18 @@ const AuthenticationsValidator = require('./validator/authentications');
 // Album
 const albumApp = require('./api/album');
 const AlbumService = require('./services/AlbumService');
-const AlbumsPayloadSchema = require('./validator/album');
+const AlbumsValidator = require('./validator/album');
 
 // Song
 const songApp = require('./api/songs');
 const SongService = require('./services/SongService');
-const SongsPayloadSchema = require('./validator/songs');
+const SongsValidator = require('./validator/songs');
+
+// Playlist
+const playlistApp = require('./api/playlists');
+const PlaylistService = require('./services/PlaylistsService');
+const PlaylistsValidator = require('./validator/playlists');
+
 require('dotenv').config();
 
 const init = async () => {
@@ -30,6 +35,8 @@ const init = async () => {
   const songService = new SongService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
+  const playlistService = new PlaylistService();
+
   const server = Hapi.server({
     port: process.env.PORT,
     host: process.env.HOST,
@@ -49,7 +56,7 @@ const init = async () => {
   ]);
 
   // mendefinisikan strategy autentikasi jwt
-  server.auth.strategy('notesapp_jwt', 'jwt', {
+  server.auth.strategy('musicsapp_jwt', 'jwt', {
     keys: process.env.ACCESS_TOKEN_KEY,
     verify: {
       aud: false,
@@ -70,14 +77,14 @@ const init = async () => {
       plugin: albumApp,
       options: {
         service: albumService,
-        validator: AlbumsPayloadSchema,
+        validator: AlbumsValidator,
       },
     },
     {
       plugin: songApp,
       options: {
         service: songService,
-        validator: SongsPayloadSchema,
+        validator: SongsValidator,
       },
     },
     {
@@ -96,6 +103,14 @@ const init = async () => {
         validator: AuthenticationsValidator,
       },
     },
+    {
+      plugin: playlistApp,
+      options: {
+        playlistService,
+        songService,
+        validator: PlaylistsValidator,
+      },
+    },
   ]);
 
   server.ext('onPreResponse', (request, h) => {
@@ -104,16 +119,6 @@ const init = async () => {
     if (response instanceof Error) {
       // penanganan client error secara internal.
       if (response instanceof ClientError) {
-        const newResponse = h.response({
-          status: 'fail',
-          message: response.message,
-        });
-        newResponse.code(response.statusCode);
-        console.error(response);
-        return newResponse;
-      }
-      // penanganan client error secara internal.
-      if (response instanceof AuthenticationError) {
         const newResponse = h.response({
           status: 'fail',
           message: response.message,
