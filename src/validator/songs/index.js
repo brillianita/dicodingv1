@@ -1,4 +1,4 @@
-const { SongPayloadSchema } = require('./songSchema');
+const { SongPayloadSchema } = require('./schema');
 const InvariantError = require('../../exceptions/InvariantError');
 
 const SongsPayloadSchema = {

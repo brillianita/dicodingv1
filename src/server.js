@@ -1,16 +1,26 @@
 const Hapi = require('@hapi/hapi');
-const albumApp = require('./api/album');
-const songApp = require('./api/songs');
-const AlbumService = require('./services/AlbumService');
-const SongService = require('./services/SongService');
-const AlbumsPayloadSchema = require('./validator/album');
-const SongsPayloadSchema = require('./validator/songs');
 const ClientError = require('./exceptions/ClientError');
+
+// users
+const users = require('./api/users');
+const UsersService = require('./services/UsersService');
+const UsersValidator = require('./validator/users');
+
+// Album
+const albumApp = require('./api/album');
+const AlbumService = require('./services/AlbumService');
+const AlbumsPayloadSchema = require('./validator/album');
+
+// Song
+const songApp = require('./api/songs');
+const SongService = require('./services/SongService');
+const SongsPayloadSchema = require('./validator/songs');
 require('dotenv').config();
 
 const init = async () => {
   const albumService = new AlbumService();
   const songService = new SongService();
+  const usersService = new UsersService();
   const server = Hapi.server({
     port: process.env.PORT,
     host: process.env.HOST,
@@ -38,6 +48,13 @@ const init = async () => {
         validator: SongsPayloadSchema,
       },
     },
+    {
+      plugin: users,
+      options: {
+        service: usersService,
+        validator: UsersValidator,
+      },
+    },
   ]);
 
   server.ext('onPreResponse', (request, h) => {
@@ -51,6 +68,7 @@ const init = async () => {
           message: response.message,
         });
         newResponse.code(response.statusCode);
+        console.error(response);
         return newResponse;
       }
       // mempertahankan penanganan client error oleh hapi secara native, seperti 404, etc.
@@ -63,6 +81,7 @@ const init = async () => {
         message: 'terjadi kegagalan pada server kami',
       });
       newResponse.code(500);
+      console.error(response);
       return newResponse;
     }
     // jika bukan error, lanjutkan dengan response sebelumnya (tanpa terintervensi)
