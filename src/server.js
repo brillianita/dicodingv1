@@ -3,7 +3,8 @@ const albumApp = require('./api/album');
 const songApp = require('./api/songs');
 const AlbumService = require('./services/AlbumService');
 const SongService = require('./services/SongService');
-const MusicsPayloadSchema = require('./validator');
+const AlbumsPayloadSchema = require('./validator/album');
+const SongsPayloadSchema = require('./validator/songs');
 const ClientError = require('./exceptions/ClientError');
 require('dotenv').config();
 
@@ -27,14 +28,14 @@ const init = async () => {
       plugin: albumApp,
       options: {
         service: albumService,
-        validator: MusicsPayloadSchema,
+        validator: AlbumsPayloadSchema,
       },
     },
     {
       plugin: songApp,
       options: {
         service: songService,
-        validator: MusicsPayloadSchema,
+        validator: SongsPayloadSchema,
       },
     },
   ]);

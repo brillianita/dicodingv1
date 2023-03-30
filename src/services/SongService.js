@@ -17,39 +17,33 @@ class SongService {
     duration,
     albumId,
   }) {
-    const id = nanoid(16);
+    const id = `song-${nanoid(16)}`;
     const query = {
       text: 'INSERT INTO song VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id',
       values: [id, title, year, genre, performer, duration, albumId],
     };
 
-    const result = await this._pool.query(query);
+    const { rows } = await this._pool.query(query);
 
-    if (!result.rows[0].id) {
+    if (!rows[0].id) {
       throw new InvariantError('Song gagal ditambahkan');
     }
 
-    return result.rows[0].id;
+    return rows[0].id;
   }
 
   async getSong({ title, performer }) {
     let result;
-    console.log('ini title', title);
     if (title && performer) {
-      console.log('1');
       result = await this._pool.query(`SELECT id, title, performer FROM song WHERE LOWER(title) LIKE '%${title.toLowerCase()}%' AND LOWER(performer) LIKE '%${performer.toLowerCase()}%'`);
     } else if (title && !performer) {
-      console.log('2');
       result = await this._pool.query(`SELECT id, title, performer FROM song WHERE LOWER(title) LIKE '%${title.toLowerCase()}%'`);
     } else if (!title && performer) {
-      console.log('3');
       result = await this._pool.query(`SELECT id, title, performer FROM song WHERE LOWER(performer) LIKE '%${performer.toLowerCase()}%'`);
     } else {
-      console.log('4');
       result = await this._pool.query('SELECT id, title, performer FROM song');
     }
-    console.log(result.rows);
-    return result.rows.map(mapDBToModel);
+    return result.rows;
   }
 
   async getSongById(id) {
@@ -57,13 +51,13 @@ class SongService {
       text: 'SELECT * FROM song WHERE id = $1',
       values: [id],
     };
-    const result = await this._pool.query(query);
+    const { rows } = await this._pool.query(query);
 
-    if (!result.rows.length) {
+    if (!rows.length) {
       throw new NotFoundError('Song tidak ditemukan');
     }
 
-    return result.rows.map(mapDBToModel)[0];
+    return rows.map(mapDBToModel)[0];
   }
 
   async editSongById(id, {
@@ -79,9 +73,9 @@ class SongService {
       values: [title, year, genre, performer, duration, albumId, id],
     };
 
-    const result = await this._pool.query(query);
+    const { rows } = await this._pool.query(query);
 
-    if (!result.rows.length) {
+    if (!rows.length) {
       throw new NotFoundError('Gagal memperbarui song. Id tidak ditemukan');
     }
   }
@@ -92,9 +86,9 @@ class SongService {
       values: [id],
     };
 
-    const result = await this._pool.query(query);
+    const { rows } = await this._pool.query(query);
 
-    if (!result.rows.length) {
+    if (!rows.length) {
       throw new NotFoundError('Song gagal dihapus. Id tidak ditemukan');
     }
   }
