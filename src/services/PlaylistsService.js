@@ -5,8 +5,9 @@ const NotFoundError = require('../exceptions/NotFoundError');
 const AuthorizationError = require('../exceptions/AuthorizationError');
 
 class PlaylistService {
-  constructor() {
+  constructor(collaborationService) {
     this._pool = new Pool();
+    this._collaborationService = collaborationService;
   }
 
   async addPlaylist({ name, owner }) {
@@ -28,7 +29,7 @@ class PlaylistService {
 
   async getPlaylists(owner) {
     const query = {
-      text: 'SELECT playlist.id, playlist.name, users.username FROM playlist INNER JOIN users ON playlist.owner = users.id WHERE playlist.owner = $1',
+      text: 'SELECT playlist.id, playlist.name, users.username FROM playlist LEFT JOIN collaborations ON collaborations.playlist_id = playlist.id INNER JOIN users ON playlist.owner = users.id WHERE playlist.owner = $1 OR collaborations.user_id = $1',
       values: [owner],
     };
     const { rows } = await this._pool.query(query);
@@ -77,9 +78,9 @@ class PlaylistService {
       throw new NotFoundError('Playlist tidak ditemukan');
     }
 
-    const note = rows[0];
+    const playlist = rows[0];
 
-    if (note.owner !== owner) {
+    if (playlist.owner !== owner) {
       throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
     }
   }
@@ -91,11 +92,11 @@ class PlaylistService {
       if (error instanceof NotFoundError) {
         throw error;
       }
-      // try {
-      //   await this._collaborationService.verifyCollaborator(playlistId, userId);
-      // } catch {
-      //   throw error;
-      // }
+      try {
+        await this._collaborationService.verifyCollaborator(playlistId, userId);
+      } catch {
+        throw error;
+      }
     }
   }
 
@@ -121,18 +122,49 @@ class PlaylistService {
   }
 
   async deleteSongInPlaylist(id, { songId }) {
-    console.log(`id = ${id} songID=${songId}`);
+    console.log('ini test');
     const query = {
       text: 'DELETE FROM playlist_songs WHERE playlist_id = $1 AND song_id = $2 RETURNING id',
       values: [id, songId],
     };
-
     const { rows } = await this._pool.query(query);
-    console.log(`rows ${rows[0]}`);
-
+    console.log('ini dataa', rows);
     if (!rows.length) {
       throw new InvariantError('Lagu gagal dihapus. Id tidak ditemukan');
     }
+  }
+
+  async addActivityToPlaylist(playlistId, songId, owner, action) {
+    const id = `playlist_activity-${nanoid(16)}`;
+    const time = new Date();
+    const query = {
+      text: 'INSERT INTO playlist_activity VALUES($1, $2, $3, $4, $5, $6) RETURNING id',
+      values: [id, action, time, playlistId, owner, songId],
+    };
+
+    const { rows } = await this._pool.query(query);
+
+    if (!rows[0].id) {
+      throw new InvariantError('Aktivitas gagal ditambahkan');
+    }
+
+    return rows[0].id;
+  }
+
+  async getActivityInPlaylist(id) {
+    const query = {
+      text: 'SELECT users.username, song.title, playlist_activity.action, playlist_activity.time FROM playlist_activity INNER JOIN users ON playlist_activity.user_id = users.id INNER JOIN song ON playlist_activity.song_id = song.id WHERE playlist_activity.playlist_id = $1',
+      values: [id],
+    };
+
+    const { rows } = await this._pool.query(query);
+    console.log('ini', rows);
+
+    if (!rows) {
+      throw new NotFoundError('Aktivitas tidak ditemukan');
+    }
+
+    return rows;
   }
 }
 

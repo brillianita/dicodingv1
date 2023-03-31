@@ -28,14 +28,20 @@ const playlistApp = require('./api/playlists');
 const PlaylistService = require('./services/PlaylistsService');
 const PlaylistsValidator = require('./validator/playlists');
 
+// collaborations
+const collaborations = require('./api/collaborations');
+const CollaborationsService = require('./services/CollaborationsService');
+const CollaborationsValidator = require('./validator/collaborations');
+
 require('dotenv').config();
 
 const init = async () => {
+  const collaborationsService = new CollaborationsService();
   const albumService = new AlbumService();
   const songService = new SongService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
-  const playlistService = new PlaylistService();
+  const playlistService = new PlaylistService(collaborationsService);
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -111,6 +117,14 @@ const init = async () => {
         validator: PlaylistsValidator,
       },
     },
+    {
+      plugin: collaborations,
+      options: {
+        collaborationsService,
+        playlistService,
+        validator: CollaborationsValidator,
+      },
+    },
   ]);
 
   server.ext('onPreResponse', (request, h) => {
@@ -124,7 +138,7 @@ const init = async () => {
           message: response.message,
         });
         newResponse.code(response.statusCode);
-        console.error(response);
+        // console.error(response);
         return newResponse;
       }
       // mempertahankan penanganan client error oleh hapi secara native, seperti 404, etc.
