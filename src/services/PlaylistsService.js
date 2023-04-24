@@ -122,13 +122,11 @@ class PlaylistService {
   }
 
   async deleteSongInPlaylist(id, { songId }) {
-    console.log('ini test');
     const query = {
       text: 'DELETE FROM playlist_songs WHERE playlist_id = $1 AND song_id = $2 RETURNING id',
       values: [id, songId],
     };
     const { rows } = await this._pool.query(query);
-    console.log('ini dataa', rows);
     if (!rows.length) {
       throw new InvariantError('Lagu gagal dihapus. Id tidak ditemukan');
     }
@@ -153,12 +151,11 @@ class PlaylistService {
 
   async getActivityInPlaylist(id) {
     const query = {
-      text: 'SELECT users.username, song.title, playlist_activity.action, playlist_activity.time FROM playlist_activity INNER JOIN users ON playlist_activity.user_id = users.id INNER JOIN song ON playlist_activity.song_id = song.id WHERE playlist_activity.playlist_id = $1',
+      text: 'SELECT users.username, song.title, playlist_activity.action, playlist_activity.time FROM playlist_activity INNER JOIN users ON playlist_activity.user_id = users.id INNER JOIN song ON playlist_activity.song_id = song.id WHERE playlist_activity.playlist_id = $1 ORDER BY playlist_activity.action',
       values: [id],
     };
 
     const { rows } = await this._pool.query(query);
-    console.log('ini', rows);
 
     if (!rows) {
       throw new NotFoundError('Aktivitas tidak ditemukan');

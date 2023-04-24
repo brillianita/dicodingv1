@@ -23,7 +23,6 @@ class CollaborationsService {
       text: 'INSERT INTO collaborations VALUES($1, $2, $3) RETURNING id',
       values: [id, playlistId, userId],
     };
-    console.log('ini');
 
     const resultCollab = await this._pool.query(queryCollab);
     if (!resultCollab.rowCount) {
