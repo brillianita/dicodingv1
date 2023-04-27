@@ -41,7 +41,7 @@ const albumRoutes = (handler) => [
   },
   {
     method: 'GET',
-    path: '/file/{param*}',
+    path: '/file/album/{param*}',
     handler: {
       directory: {
         path: path.resolve(__dirname, 'file'),

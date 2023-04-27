@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../exceptions/InvariantError');
@@ -5,8 +6,9 @@ const { mapDBToModel } = require('../utils');
 const NotFoundError = require('../exceptions/NotFoundError');
 
 class AlbumService {
-  constructor() {
+  constructor(cacheService) {
     this._pool = new Pool();
+    this._cacheService = cacheService;
   }
 
   async addAlbum({ name, year }) {
@@ -33,10 +35,15 @@ class AlbumService {
 
   async getAlbumById(id) {
     const queryAlbum = {
-      text: 'SELECT id, name, year, cover_url AS coverUrl FROM album WHERE id = $1',
+      text: 'SELECT * FROM album WHERE id = $1',
       values: [id],
     };
     const resultAlbum = await this._pool.query(queryAlbum);
+    resultAlbum.rows.map((obj) => {
+      obj.coverUrl = obj.cover_url; // Assign new key
+      delete obj.cover_url; // Delete old key
+      return obj;
+    });
 
     if (!resultAlbum.rowCount) {
       throw new NotFoundError('Album tidak ditemukan');
@@ -111,6 +118,7 @@ class AlbumService {
     if (!rAddLike.rows[0].id) {
       throw new InvariantError('Gagal menyukai album');
     }
+    await this._cacheService.delete(`album:${albumId}`);
 
     return rAddLike.rows[0].id;
   }
@@ -126,16 +134,26 @@ class AlbumService {
     if (!rows.length) {
       throw new NotFoundError('Album gagal dihapus. Id tidak ditemukan');
     }
+    await this._cacheService.delete(`album:${albumId}`);
   }
 
   async getLikeAlbum(albumId) {
-    const query = {
-      text: 'SELECT album_id FROM user_album_likes WHERE album_id = $1',
-      values: [albumId],
-    };
+    try {
+      const rowCount = await this._cacheService.get(`album:${albumId}`);
+      return {
+        rowCount,
+        isCache: 1,
+      };
+    } catch (error) {
+      const query = {
+        text: 'SELECT album_id, user_id FROM user_album_likes WHERE album_id = $1',
+        values: [albumId],
+      };
 
-    const { rowCount } = await this._pool.query(query);
-    return rowCount;
+      const { rowCount } = await this._pool.query(query);
+      await this._cacheService.set(`album:${albumId}`, JSON.stringify(rowCount));
+      return { rowCount };
+    }
   }
 }
 

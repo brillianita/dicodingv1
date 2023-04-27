@@ -43,11 +43,14 @@ const ExportsValidator = require('./validator/exports');
 // upload
 const StorageService = require('./services/StorageService');
 
+// cache
+const CacheService = require('./services/CacheService');
 require('dotenv').config();
 
 const init = async () => {
+  const cacheService = new CacheService();
   const collaborationsService = new CollaborationsService();
-  const albumService = new AlbumService();
+  const albumService = new AlbumService(cacheService);
   const songService = new SongService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();

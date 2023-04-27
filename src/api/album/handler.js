@@ -122,14 +122,17 @@ class AlbumHandler {
   async getLikeAlbumHandler(request, h) {
     const { id } = request.params;
 
-    const result = await this._albumService.getLikeAlbum(id);
+    const { rowCount, isCache } = await this._albumService.getLikeAlbum(id);
 
     const response = h.response({
       status: 'success',
       data: {
-        likes: result,
+        likes: Number(rowCount),
       },
     });
+    if (isCache) {
+      response.header('X-Data-Source', 'cache');
+    }
     response.code(200);
     return response;
   }
