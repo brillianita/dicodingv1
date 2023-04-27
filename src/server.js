@@ -1,5 +1,7 @@
 const Hapi = require('@hapi/hapi');
+const Inert = require('@hapi/inert');
 const Jwt = require('@hapi/jwt');
+const path = require('path');
 const ClientError = require('./exceptions/ClientError');
 
 // users
@@ -38,6 +40,9 @@ const _exports = require('./api/exports');
 const ProducerService = require('./services/ProducerService');
 const ExportsValidator = require('./validator/exports');
 
+// upload
+const StorageService = require('./services/StorageService');
+
 require('dotenv').config();
 
 const init = async () => {
@@ -47,6 +52,7 @@ const init = async () => {
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
   const playlistService = new PlaylistService(collaborationsService);
+  const storageService = new StorageService(path.resolve(__dirname, 'api/album/file'));
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -63,6 +69,9 @@ const init = async () => {
   await server.register([
     {
       plugin: Jwt,
+    },
+    {
+      plugin: Inert,
     },
   ]);
 
@@ -87,7 +96,8 @@ const init = async () => {
     {
       plugin: albumApp,
       options: {
-        service: albumService,
+        albumService,
+        storageService,
         validator: AlbumsValidator,
       },
     },

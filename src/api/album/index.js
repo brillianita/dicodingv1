@@ -4,8 +4,8 @@ const albumRoutes = require('./routes');
 module.exports = {
   name: 'albumApp',
   version: '1.0.0',
-  register: async (server, { service, validator }) => {
-    const albumHandler = new AlbumHandler(service, validator);
+  register: async (server, { albumService, storageService, validator }) => {
+    const albumHandler = new AlbumHandler(albumService, storageService, validator);
     server.route(albumRoutes(albumHandler));
   },
 };
