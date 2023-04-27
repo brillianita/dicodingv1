@@ -48,6 +48,27 @@ const albumRoutes = (handler) => [
       },
     },
   },
+  {
+    method: 'POST',
+    path: '/albums/{id}/likes',
+    handler: handler.postLikeAlbumHandler,
+    options: {
+      auth: 'musicsapp_jwt',
+    },
+  },
+  {
+    method: 'DELETE',
+    path: '/albums/{id}/likes',
+    handler: handler.deleteLikeAlbumHandler,
+    options: {
+      auth: 'musicsapp_jwt',
+    },
+  },
+  {
+    method: 'GET',
+    path: '/albums/{id}/likes',
+    handler: handler.getLikeAlbumHandler,
+  },
 ];
 
 module.exports = albumRoutes;
