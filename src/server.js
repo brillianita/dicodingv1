@@ -33,6 +33,11 @@ const collaborations = require('./api/collaborations');
 const CollaborationsService = require('./services/CollaborationsService');
 const CollaborationsValidator = require('./validator/collaborations');
 
+// exports
+const _exports = require('./api/exports');
+const ProducerService = require('./services/ProducerService');
+const ExportsValidator = require('./validator/exports');
+
 require('dotenv').config();
 
 const init = async () => {
@@ -123,6 +128,14 @@ const init = async () => {
         collaborationsService,
         playlistService,
         validator: CollaborationsValidator,
+      },
+    },
+    {
+      plugin: _exports,
+      options: {
+        playlistService,
+        service: ProducerService,
+        validator: ExportsValidator,
       },
     },
   ]);
